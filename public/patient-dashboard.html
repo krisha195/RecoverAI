@@ -1,0 +1,726 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>My Recovery — RecoverAI</title>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;700&family=DM+Serif+Display&display=swap" rel="stylesheet" />
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --primary: #2d6a4f; --primary-light: #52b788;
+      --bg: #f5fdf7; --card: #ffffff;
+      --border: #d8f3dc; --text: #1b2e22; --muted: #6b8f71;
+    }
+    body { font-family: 'DM Sans', sans-serif; background: var(--bg); min-height: 100vh; }
+
+    /* Navbar */
+    nav {
+      background: var(--primary);
+      padding: 14px 28px;
+      display: flex; align-items: center; justify-content: space-between;
+      color: white;
+    }
+    .nav-brand { font-family: 'DM Serif Display', serif; font-size: 1.2rem; display: flex; align-items: center; gap: 8px; }
+    .nav-right { display: flex; align-items: center; gap: 16px; font-size: 0.85rem; }
+    .nav-user { opacity: 0.85; }
+    .logout-btn {
+      background: rgba(255,255,255,0.15); border: none; color: white;
+      padding: 6px 14px; border-radius: 20px; cursor: pointer; font-size: 0.82rem;
+      font-family: 'DM Sans', sans-serif; transition: background 0.2s;
+    }
+    .logout-btn:hover { background: rgba(255,255,255,0.25); }
+
+    /* Tabs */
+    .tabs-nav {
+      display: flex; gap: 0; background: white;
+      border-bottom: 2px solid var(--border); padding: 0 28px;
+    }
+    .tab-btn {
+      padding: 14px 22px; border: none; background: none;
+      font-family: 'DM Sans', sans-serif; font-size: 0.88rem; font-weight: 600;
+      color: var(--muted); cursor: pointer; border-bottom: 3px solid transparent;
+      margin-bottom: -2px; transition: all 0.2s;
+    }
+    .tab-btn.active { color: var(--primary); border-bottom-color: var(--primary); }
+
+    /* Panels */
+    .panel { display: none; padding: 24px 28px; max-width: 900px; margin: 0 auto; }
+    .panel.active { display: block; }
+
+    /* Chat panel */
+    .chat-wrap {
+      background: var(--card); border-radius: 16px;
+      box-shadow: 0 4px 20px rgba(45,106,79,0.08);
+      display: flex; flex-direction: column; height: 72vh;
+      overflow: hidden;
+    }
+    .chat-area {
+      flex: 1; overflow-y: auto; padding: 20px 16px;
+      display: flex; flex-direction: column; gap: 14px;
+      scroll-behavior: smooth;
+    }
+    .chat-area::-webkit-scrollbar { width: 4px; }
+    .chat-area::-webkit-scrollbar-thumb { background: var(--border); border-radius: 4px; }
+    .message { display: flex; gap: 10px; align-items: flex-end; animation: fadeUp 0.25s ease; }
+    .message.user { flex-direction: row-reverse; }
+    @keyframes fadeUp { from { opacity:0; transform:translateY(8px); } to { opacity:1; transform:translateY(0); } }
+    .avatar {
+      width: 32px; height: 32px; border-radius: 50%;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 14px; flex-shrink: 0; background: var(--border);
+    }
+    .bubble {
+      max-width: 72%; padding: 11px 15px; border-radius: 18px;
+      font-size: 0.88rem; line-height: 1.55;
+    }
+    .message.bot .bubble { background: white; border: 1px solid var(--border); border-bottom-left-radius: 4px; color: var(--text); }
+    .message.user .bubble { background: var(--primary); color: white; border-bottom-right-radius: 4px; }
+    .ts { font-size: 0.68rem; color: var(--muted); margin-top: 3px; padding: 0 4px; }
+    .message.user .ts { text-align: right; }
+    .typing-indicator { display: flex; gap: 10px; align-items: center; padding: 0 16px 8px; }
+    .typing-dots { display: flex; gap: 4px; background: white; border: 1px solid var(--border); padding: 10px 14px; border-radius: 18px; border-bottom-left-radius: 4px; }
+    .typing-dots span { width: 7px; height: 7px; background: var(--primary-light); border-radius: 50%; animation: bounce 1.2s infinite; }
+    .typing-dots span:nth-child(2) { animation-delay: 0.2s; }
+    .typing-dots span:nth-child(3) { animation-delay: 0.4s; }
+    @keyframes bounce { 0%,100%{transform:translateY(0)} 40%{transform:translateY(-5px)} }
+    .hidden { display: none !important; }
+    .quick-prompts { padding: 8px 16px; display: flex; gap: 8px; flex-wrap: wrap; border-top: 1px solid var(--border); }
+    .quick-btn {
+      background: #f0faf4; border: 1px solid var(--border); color: var(--primary);
+      border-radius: 20px; padding: 5px 12px; font-size: 0.76rem; cursor: pointer;
+      font-family: 'DM Sans', sans-serif; transition: all 0.2s;
+    }
+    .quick-btn:hover { background: var(--primary); color: white; }
+    .input-area { padding: 12px 16px 16px; border-top: 1px solid var(--border); display: flex; gap: 10px; align-items: flex-end; }
+    .input-wrap { flex: 1; }
+    textarea {
+      width: 100%; padding: 10px 14px; border: 1.5px solid var(--border);
+      border-radius: 12px; font-family: 'DM Sans', sans-serif; font-size: 0.88rem;
+      resize: none; outline: none; max-height: 100px; line-height: 1.5;
+      transition: border-color 0.2s; color: var(--text); background: var(--bg);
+    }
+    textarea:focus { border-color: var(--primary-light); }
+    .send-btn {
+      width: 44px; height: 44px; background: var(--primary); color: white;
+      border: none; border-radius: 12px; cursor: pointer;
+      display: flex; align-items: center; justify-content: center; flex-shrink: 0;
+      transition: background 0.2s;
+    }
+    .send-btn:hover { background: #1b4332; }
+    .send-btn:disabled { background: #aaa; cursor: not-allowed; }
+    .send-btn svg { width: 18px; height: 18px; }
+
+    /* Cards for symptoms/meds */
+    .section-title { font-size: 1rem; font-weight: 700; color: var(--primary); margin-bottom: 16px; }
+    .form-card {
+      background: var(--card); border-radius: 14px; padding: 24px;
+      box-shadow: 0 4px 16px rgba(45,106,79,0.07); margin-bottom: 24px;
+    }
+    .form-row { display: flex; gap: 14px; flex-wrap: wrap; }
+    .form-group { flex: 1; min-width: 180px; margin-bottom: 14px; }
+    label { display: block; font-size: 0.8rem; font-weight: 600; color: var(--primary); margin-bottom: 5px; }
+    input[type=text], input[type=email], select, .text-input {
+      width: 100%; padding: 9px 12px; border: 1.5px solid var(--border);
+      border-radius: 9px; font-family: 'DM Sans', sans-serif; font-size: 0.88rem;
+      outline: none; transition: border-color 0.2s; color: var(--text); background: var(--bg);
+    }
+    input[type=text]:focus, select:focus, .text-input:focus { border-color: var(--primary-light); }
+    .submit-btn {
+      padding: 10px 24px; background: var(--primary); color: white;
+      border: none; border-radius: 10px; font-family: 'DM Sans', sans-serif;
+      font-size: 0.88rem; font-weight: 600; cursor: pointer; transition: background 0.2s;
+    }
+    .submit-btn:hover { background: #1b4332; }
+    .log-list { display: flex; flex-direction: column; gap: 10px; }
+    .log-item {
+      background: var(--card); border: 1px solid var(--border); border-radius: 12px;
+      padding: 14px 16px; display: flex; justify-content: space-between; align-items: flex-start;
+    }
+    .log-item.flagged { border-color: #e74c3c; background: #fff5f5; }
+    .log-text { font-size: 0.88rem; color: var(--text); }
+    .log-meta { font-size: 0.72rem; color: var(--muted); margin-top: 4px; }
+    .badge {
+      font-size: 0.7rem; padding: 3px 10px; border-radius: 20px;
+      font-weight: 600; flex-shrink: 0;
+    }
+    .badge.mild { background: #d8f3dc; color: #2d6a4f; }
+    .badge.moderate { background: #fff3cd; color: #856404; }
+    .badge.severe { background: #fde8e8; color: #c0392b; }
+    .badge.flag { background: #fde8e8; color: #c0392b; }
+    .disclaimer { font-size: 0.72rem; color: var(--muted); text-align: center; padding: 12px 0 0; }
+
+  /* Quiz */
+  .quiz-card { background: var(--card); border-radius: 14px; padding: 28px; box-shadow: 0 4px 16px rgba(45,106,79,0.07); margin-bottom: 20px; }
+  .quiz-q { margin-bottom: 18px; padding-bottom: 18px; border-bottom: 1px solid var(--border); }
+  .quiz-q:last-child { border-bottom: none; margin-bottom: 0; }
+  .quiz-q p { font-size: 0.9rem; font-weight: 600; color: var(--text); margin-bottom: 10px; }
+  .quiz-options { display: flex; gap: 10px; }
+  .quiz-opt {
+    flex: 1; padding: 9px; border: 2px solid var(--border); border-radius: 10px;
+    background: var(--bg); cursor: pointer; font-family: 'DM Sans', sans-serif;
+    font-size: 0.85rem; font-weight: 600; transition: all 0.2s; color: var(--text);
+  }
+  .quiz-opt.yes.selected { border-color: #2d6a4f; background: #d8f3dc; color: #2d6a4f; }
+  .quiz-opt.no.selected { border-color: #c0392b; background: #fde8e8; color: #c0392b; }
+  .quiz-opt:hover { border-color: var(--primary-light); }
+  .score-card {
+    border-radius: 16px; padding: 32px; text-align: center; margin-bottom: 20px;
+    background: linear-gradient(135deg, #2d6a4f, #52b788);
+    color: white;
+  }
+  .score-num { font-size: 4rem; font-weight: 700; line-height: 1; }
+  .score-label { font-size: 1rem; opacity: 0.9; margin-top: 6px; }
+  .score-risk { font-size: 1.1rem; font-weight: 700; margin-top: 12px; padding: 6px 20px; border-radius: 20px; display: inline-block; }
+  .risk-low { background: rgba(255,255,255,0.25); }
+  .risk-medium { background: rgba(255,200,0,0.4); }
+  .risk-high { background: rgba(220,50,50,0.5); }
+
+  /* Plan */
+  .plan-output {
+    background: var(--card); border-radius: 14px; padding: 28px;
+    box-shadow: 0 4px 16px rgba(45,106,79,0.07);
+    color: var(--text); border-left: 4px solid var(--primary);
+  }
+  .plan-section { margin-bottom: 24px; padding-bottom: 24px; border-bottom: 1px solid var(--border); }
+  .plan-section:last-child { border-bottom: none; margin-bottom: 0; }
+  .plan-section-title {
+    font-size: 0.95rem; font-weight: 700; color: var(--primary);
+    margin-bottom: 10px; display: flex; align-items: center; gap: 8px;
+  }
+  .plan-section ul { padding-left: 18px; }
+  .plan-section li { font-size: 0.88rem; line-height: 1.8; color: var(--text); }
+  .plan-section p { font-size: 0.88rem; line-height: 1.7; color: var(--text); }
+  </style>
+</head>
+<body>
+
+<nav>
+  <div class="nav-brand">🏥 RecoverAI</div>
+  <div class="nav-right">
+    <span class="nav-user" id="navUser"></span>
+    <button class="logout-btn" onclick="logout()">Logout</button>
+  </div>
+</nav>
+
+<div class="tabs-nav">
+  <button class="tab-btn active" onclick="showPanel('chat', this)">💬 Chat</button>
+  <button class="tab-btn" onclick="showPanel('symptoms', this)">🩺 Symptoms</button>
+  <button class="tab-btn" onclick="showPanel('medications', this)">💊 Medications</button>
+  <button class="tab-btn" onclick="showPanel('quiz', this)">📋 Assessment</button>
+  <button class="tab-btn" onclick="showPanel('plan', this)">📄 Recovery Plan</button>
+</div>
+
+<!-- CHAT PANEL -->
+<div class="panel active" id="panel-chat">
+  <div class="chat-wrap">
+    <div class="chat-area" id="chatArea">
+      <div class="message bot">
+        <div class="avatar">🤖</div>
+        <div>
+          <div class="bubble">Hello! I'm your Recovery Companion. How are you feeling today? You can ask me about your symptoms, medications, wound care, or follow-up instructions.</div>
+          <div class="ts">Just now</div>
+        </div>
+      </div>
+    </div>
+    <div class="typing-indicator hidden" id="typingIndicator">
+      <div class="avatar" style="margin-left:10px">🤖</div>
+      <div class="typing-dots"><span></span><span></span><span></span></div>
+    </div>
+    <div class="quick-prompts">
+      <button class="quick-btn" onclick="useQuick('How do I care for my wound?')">🩹 Wound care</button>
+      <button class="quick-btn" onclick="useQuick('I have a fever, what should I do?')">🌡️ Fever</button>
+      <button class="quick-btn" onclick="useQuick('When should I take my medication?')">💊 Medication</button>
+      <button class="quick-btn" onclick="useQuick('I am feeling anxious about my recovery')">😟 Anxiety</button>
+    </div>
+    <div class="input-area">
+      <div class="input-wrap">
+        <textarea id="msgInput" rows="1" placeholder="Ask about your recovery…"
+          onkeydown="handleKey(event)" oninput="autoResize(this)"></textarea>
+      </div>
+      <button class="send-btn" id="sendBtn" onclick="sendMessage()">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <line x1="22" y1="2" x2="11" y2="13"></line>
+          <polygon points="22 2 15 22 11 13 2 9 22 2"></polygon>
+        </svg>
+      </button>
+    </div>
+    <div class="disclaimer">⚠️ Not a substitute for professional medical advice. For emergencies, call 112.</div>
+  </div>
+</div>
+
+<!-- SYMPTOMS PANEL -->
+<div class="panel" id="panel-symptoms">
+  <div class="form-card">
+    <div class="section-title">Log Today's Symptoms</div>
+    <div class="form-row">
+      <div class="form-group" style="flex:2">
+        <label>Describe your symptoms</label>
+        <input type="text" id="symptomText" placeholder="e.g. mild headache, slight fever, wound looks red…" />
+      </div>
+      <div class="form-group">
+        <label>Severity</label>
+        <select id="symptomSeverity">
+          <option value="mild">Mild</option>
+          <option value="moderate">Moderate</option>
+          <option value="severe">Severe</option>
+        </select>
+      </div>
+    </div>
+    <button class="submit-btn" onclick="logSymptom()">Log Symptom</button>
+    <div id="symptomMsg" style="font-size:0.82rem;margin-top:10px;color:var(--primary)"></div>
+  </div>
+
+  <div class="section-title">Recent Symptom History</div>
+  <div class="log-list" id="symptomList"><p style="color:var(--muted);font-size:0.85rem">Loading…</p></div>
+</div>
+
+<!-- MEDICATIONS PANEL -->
+<div class="panel" id="panel-medications">
+  <div class="form-card">
+    <div class="section-title">Add Medication</div>
+    <div class="form-row">
+      <div class="form-group">
+        <label>Medication Name</label>
+        <input type="text" id="medName" placeholder="e.g. Amoxicillin" />
+      </div>
+      <div class="form-group">
+        <label>Dosage</label>
+        <input type="text" id="medDosage" placeholder="e.g. 500mg" />
+      </div>
+      <div class="form-group">
+        <label>Schedule</label>
+        <input type="text" id="medSchedule" placeholder="e.g. Twice daily after meals" />
+      </div>
+    </div>
+    <button class="submit-btn" onclick="addMedication()">Add Medication</button>
+    <div id="medMsg" style="font-size:0.82rem;margin-top:10px;color:var(--primary)"></div>
+  </div>
+
+  <div class="section-title">My Medications</div>
+  <div class="log-list" id="medList"><p style="color:var(--muted);font-size:0.85rem">Loading…</p></div>
+</div>
+
+<!-- QUIZ PANEL -->
+<div class="panel" id="panel-quiz">
+
+  <!-- Step 1: Surgery Info -->
+  <div id="quizStep1">
+    <div class="form-card">
+      <div class="section-title">🤖 AI Recovery Assessment</div>
+      <p style="font-size:0.88rem;color:var(--muted);margin-bottom:20px">Tell us about your surgery and our AI will generate a personalized assessment for you.</p>
+      <div class="form-row">
+        <div class="form-group">
+          <label>Surgery / Procedure</label>
+          <input type="text" id="quizSurgery" placeholder="e.g. Appendectomy, Knee Replacement, C-Section" />
+        </div>
+        <div class="form-group">
+          <label>Diagnosis (optional)</label>
+          <input type="text" id="quizDiagnosis" placeholder="e.g. Appendicitis, Osteoarthritis" />
+        </div>
+      </div>
+      <button class="submit-btn" id="quizGenerateBtn" onclick="generateQuiz()">🤖 Generate My Assessment →</button>
+      <div id="quizGenMsg" style="font-size:0.82rem;margin-top:10px;color:var(--primary)"></div>
+    </div>
+
+    <div class="form-card" style="margin-top:0">
+      <div class="section-title">Previous Assessments</div>
+      <div id="assessmentHistory"><p style="color:var(--muted);font-size:0.85rem">Loading…</p></div>
+    </div>
+  </div>
+
+  <!-- Step 2: Questions -->
+  <div id="quizStep2" style="display:none">
+    <div class="quiz-card">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px">
+        <div class="section-title" style="margin:0">📋 Assessment Questions</div>
+        <span id="quizProgress" style="font-size:0.82rem;color:var(--muted)"></span>
+      </div>
+      <div id="quizQuestions"></div>
+      <div style="margin-top:24px;display:flex;gap:12px">
+        <button class="submit-btn" onclick="submitQuiz()">Submit & Get Results →</button>
+        <button onclick="resetQuiz()" style="padding:10px 20px;background:none;border:1.5px solid var(--border);border-radius:10px;cursor:pointer;font-family:inherit;color:var(--muted);font-size:0.88rem">Start Over</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Step 3: Results -->
+  <div id="quizStep3" style="display:none">
+    <div class="score-card" id="scoreCard">
+      <div class="score-num" id="scoreNum">—</div>
+      <div class="score-label">Recovery Score</div>
+      <div class="score-risk" id="scoreRisk"></div>
+      <div id="scoreSummary" style="font-size:0.88rem;opacity:0.9;margin-top:10px"></div>
+    </div>
+
+    <div class="form-card">
+      <div class="section-title">🔍 AI Observations</div>
+      <ul id="observationsList" style="padding-left:18px"></ul>
+    </div>
+
+    <div class="form-card">
+      <div class="section-title">✅ Recommendations</div>
+      <ul id="recommendationsList" style="padding-left:18px"></ul>
+    </div>
+
+    <div id="urgentBanner" style="display:none;background:#fde8e8;border:1.5px solid #e74c3c;border-radius:12px;padding:16px;margin-bottom:16px">
+      <strong style="color:#c0392b">🚨 Immediate Attention Required</strong>
+      <p style="font-size:0.85rem;color:#c0392b;margin-top:6px">Your assessment indicates you may need urgent medical attention. Please contact your doctor or go to the nearest emergency room.</p>
+    </div>
+
+    <button class="submit-btn" onclick="resetQuiz()">Take Another Assessment</button>
+  </div>
+</div>
+
+<!-- RECOVERY PLAN PANEL -->
+<div class="panel" id="panel-plan">
+  <div class="form-card">
+    <div class="section-title">🤖 AI-Generated Recovery Plan</div>
+    <p style="font-size:0.88rem;color:var(--muted);margin-bottom:20px">Fill in your details and get a personalized recovery plan generated by AI.</p>
+    <div class="form-row">
+      <div class="form-group">
+        <label>Primary Diagnosis</label>
+        <input type="text" id="planDiagnosis" placeholder="e.g. Appendicitis" />
+      </div>
+      <div class="form-group">
+        <label>Surgery Type</label>
+        <input type="text" id="planSurgery" placeholder="e.g. Laparoscopic Appendectomy" />
+      </div>
+    </div>
+    <div class="form-group">
+      <label>Current Medications</label>
+      <input type="text" id="planMeds" placeholder="e.g. Amoxicillin 500mg, Paracetamol 650mg" />
+    </div>
+    <div class="form-group">
+      <label>Any specific concerns?</label>
+      <input type="text" id="planConcerns" placeholder="e.g. wound pain, difficulty sleeping" />
+    </div>
+    <button class="submit-btn" id="planBtn" onclick="generatePlan()">Generate My Recovery Plan →</button>
+    <div id="planMsg" style="font-size:0.82rem;margin-top:10px;color:var(--primary)"></div>
+  </div>
+  <div id="planOutput" style="display:none">
+    <div class="section-title" style="margin-bottom:12px">📄 Your Personalized Recovery Plan</div>
+    <div class="plan-output" id="planText"></div>
+    <p style="font-size:0.72rem;color:var(--muted);margin-top:10px">⚠️ This plan is AI-generated for guidance only. Always follow your doctor's instructions.</p>
+  </div>
+</div>
+
+<script>
+  const token = localStorage.getItem('token');
+  const user = JSON.parse(localStorage.getItem('user') || '{}');
+  if (!token || user.role !== 'patient') window.location.href = 'auth-patient.html';
+  document.getElementById('navUser').textContent = '👤 ' + (user.name || user.email);
+
+  function logout() { localStorage.clear(); window.location.href = 'index.html'; }
+
+  function showPanel(name, btn) {
+    document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
+    document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+    document.getElementById('panel-' + name).classList.add('active');
+    btn.classList.add('active');
+    if (name === 'symptoms') loadSymptoms();
+    if (name === 'medications') loadMedications();
+    if (name === 'quiz') loadAssessmentHistory();
+    if (name === 'plan') loadSavedPlan();
+  }
+
+  // ---- CHAT ----
+  function getTime() { return new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }); }
+  function escapeHTML(s) { return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/\n/g,'<br>'); }
+
+  function appendMsg(role, text) {
+    const area = document.getElementById('chatArea');
+    const isUser = role === 'user';
+    const d = document.createElement('div');
+    d.className = 'message ' + (isUser ? 'user' : 'bot');
+    d.innerHTML = `<div class="avatar">${isUser ? '🧑' : '🤖'}</div><div><div class="bubble">${escapeHTML(text)}</div><div class="ts">${getTime()}</div></div>`;
+    area.appendChild(d);
+    area.scrollTop = area.scrollHeight;
+  }
+
+  function setLoading(v) {
+    document.getElementById('sendBtn').disabled = v;
+    document.getElementById('typingIndicator').classList.toggle('hidden', !v);
+    document.getElementById('chatArea').scrollTop = 99999;
+  }
+
+  async function sendMessage() {
+    const input = document.getElementById('msgInput');
+    const msg = input.value.trim();
+    if (!msg) return;
+    appendMsg('user', msg);
+    input.value = ''; input.style.height = 'auto';
+    setLoading(true);
+    try {
+      const res = await fetch('/api/chat', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + token },
+        body: JSON.stringify({ message: msg })
+      });
+      const data = await res.json();
+      appendMsg('bot', data.reply || 'Sorry, could not process your request.');
+    } catch { appendMsg('bot', 'Connection error. Please try again.'); }
+    finally { setLoading(false); }
+  }
+
+  function useQuick(t) { document.getElementById('msgInput').value = t; sendMessage(); }
+  function handleKey(e) { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendMessage(); } }
+  function autoResize(el) { el.style.height = 'auto'; el.style.height = Math.min(el.scrollHeight, 100) + 'px'; }
+
+  // ---- SYMPTOMS ----
+  async function logSymptom() {
+    const symptoms = document.getElementById('symptomText').value.trim();
+    const severity = document.getElementById('symptomSeverity').value;
+    const msg = document.getElementById('symptomMsg');
+    if (!symptoms) { msg.textContent = 'Please describe your symptoms.'; msg.style.color = '#c0392b'; return; }
+    const res = await fetch('/api/patient/symptoms', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + token },
+      body: JSON.stringify({ symptoms, severity })
+    });
+    const data = await res.json();
+    if (data.flagged) {
+      msg.textContent = '⚠️ Red-flag symptoms detected! Please contact your doctor or call emergency services immediately.';
+      msg.style.color = '#c0392b';
+    } else {
+      msg.textContent = '✅ Symptom logged successfully.';
+      msg.style.color = '#2d6a4f';
+    }
+    document.getElementById('symptomText').value = '';
+    loadSymptoms();
+  }
+
+  async function loadSymptoms() {
+    const res = await fetch('/api/patient/symptoms', { headers: { 'Authorization': 'Bearer ' + token } });
+    const data = await res.json();
+    const list = document.getElementById('symptomList');
+    if (!data.logs?.length) { list.innerHTML = '<p style="color:var(--muted);font-size:0.85rem">No symptoms logged yet.</p>'; return; }
+    list.innerHTML = data.logs.map(l => `
+      <div class="log-item ${l.flagged ? 'flagged' : ''}">
+        <div>
+          <div class="log-text">${escapeHTML(l.symptoms)}</div>
+          <div class="log-meta">${new Date(l.created_at).toLocaleString()}</div>
+        </div>
+        <div style="display:flex;gap:6px;flex-direction:column;align-items:flex-end">
+          <span class="badge ${l.severity}">${l.severity}</span>
+          ${l.flagged ? '<span class="badge flag">🚨 Red Flag</span>' : ''}
+        </div>
+      </div>`).join('');
+  }
+
+  // ---- MEDICATIONS ----
+  async function addMedication() {
+    const name = document.getElementById('medName').value.trim();
+    const dosage = document.getElementById('medDosage').value.trim();
+    const schedule = document.getElementById('medSchedule').value.trim();
+    const msg = document.getElementById('medMsg');
+    if (!name) { msg.textContent = 'Medication name is required.'; msg.style.color = '#c0392b'; return; }
+    await fetch('/api/patient/medications', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + token },
+      body: JSON.stringify({ name, dosage, schedule })
+    });
+    msg.textContent = '✅ Medication added.'; msg.style.color = '#2d6a4f';
+    document.getElementById('medName').value = '';
+    document.getElementById('medDosage').value = '';
+    document.getElementById('medSchedule').value = '';
+    loadMedications();
+  }
+
+  async function loadMedications() {
+    const res = await fetch('/api/patient/medications', { headers: { 'Authorization': 'Bearer ' + token } });
+    const data = await res.json();
+    const list = document.getElementById('medList');
+    if (!data.medications?.length) { list.innerHTML = '<p style="color:var(--muted);font-size:0.85rem">No medications added yet.</p>'; return; }
+    list.innerHTML = data.medications.map(m => `
+      <div class="log-item">
+        <div>
+          <div class="log-text">💊 <strong>${escapeHTML(m.medication_name)}</strong> — ${escapeHTML(m.dosage || '—')}</div>
+          <div class="log-meta">Frequency: ${escapeHTML(m.frequency || 'Not specified')}</div>
+        </div>
+      </div>`).join('');
+  }
+  // ---- QUIZ ----
+  let quizData = { questions: [], answers: {}, surgeryType: '', diagnosis: '' };
+
+  async function generateQuiz() {
+    const surgeryType = document.getElementById('quizSurgery').value.trim();
+    const diagnosis = document.getElementById('quizDiagnosis').value.trim();
+    const msg = document.getElementById('quizGenMsg');
+    const btn = document.getElementById('quizGenerateBtn');
+    if (!surgeryType) { msg.textContent = 'Please enter your surgery type.'; msg.style.color = '#c0392b'; return; }
+    msg.textContent = '\u23f3 AI is generating your personalized questions...';
+    msg.style.color = 'var(--primary)';
+    btn.disabled = true;
+    try {
+      const res = await fetch('/api/patient/quiz/generate', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + token },
+        body: JSON.stringify({ surgeryType, diagnosis })
+      });
+      const data = await res.json();
+      if (!data.questions?.length) throw new Error(data.error || 'No questions returned');
+      quizData = { questions: data.questions, answers: {}, surgeryType, diagnosis };
+      renderQuestions();
+      document.getElementById('quizStep1').style.display = 'none';
+      document.getElementById('quizStep2').style.display = 'block';
+    } catch (e) {
+      msg.textContent = '\u274c ' + e.message;
+      msg.style.color = '#c0392b';
+    } finally { btn.disabled = false; }
+  }
+
+  function renderQuestions() {
+    const container = document.getElementById('quizQuestions');
+    document.getElementById('quizProgress').textContent = quizData.questions.length + ' questions';
+    container.innerHTML = quizData.questions.map((q, i) => `
+      <div class="quiz-q">
+        <p>${i + 1}. ${escapeHTML(q.question)}</p>
+        <div class="quiz-options">
+          <button class="quiz-opt yes" id="q${i}_yes" onclick="selectAnswer(${i}, 'Yes')">Yes</button>
+          <button class="quiz-opt no" id="q${i}_no" onclick="selectAnswer(${i}, 'No')">No</button>
+        </div>
+      </div>`).join('');
+  }
+
+  function selectAnswer(idx, val) {
+    quizData.answers[idx] = val;
+    document.getElementById('q' + idx + '_yes').classList.toggle('selected', val === 'Yes');
+    document.getElementById('q' + idx + '_no').classList.toggle('selected', val === 'No');
+    const answered = Object.keys(quizData.answers).length;
+    document.getElementById('quizProgress').textContent = answered + ' / ' + quizData.questions.length + ' answered';
+  }
+
+  async function submitQuiz() {
+    const total = quizData.questions.length;
+    const answered = Object.keys(quizData.answers).length;
+    if (answered < total) { alert('Please answer all ' + total + ' questions. ' + (total - answered) + ' remaining.'); return; }
+    const answers = quizData.questions.map((q, i) => quizData.answers[i]);
+    const msg = document.getElementById('quizGenMsg');
+    try {
+      const res = await fetch('/api/patient/quiz/evaluate', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + token },
+        body: JSON.stringify({ surgeryType: quizData.surgeryType, diagnosis: quizData.diagnosis, questions: quizData.questions, answers })
+      });
+      const data = await res.json();
+      if (!data.evaluation) throw new Error(data.error || 'Evaluation failed');
+      showResults(data.evaluation);
+    } catch (e) { alert('Error: ' + e.message); }
+  }
+
+  function showResults(ev) {
+    document.getElementById('scoreNum').textContent = ev.score + '%';
+    const riskLabels = { low: '\ud83d\udfe2 Recovering Well', medium: '\ud83d\udfe1 Monitor Closely', high: '\ud83d\udd34 High Risk \u2014 Contact Doctor' };
+    const riskEl = document.getElementById('scoreRisk');
+    riskEl.textContent = riskLabels[ev.risk_level] || ev.risk_level;
+    riskEl.className = 'score-risk risk-' + ev.risk_level;
+    document.getElementById('scoreSummary').textContent = ev.summary || '';
+    const card = document.getElementById('scoreCard');
+    if (ev.risk_level === 'high') card.style.background = 'linear-gradient(135deg,#c0392b,#e74c3c)';
+    else if (ev.risk_level === 'medium') card.style.background = 'linear-gradient(135deg,#e67e22,#f39c12)';
+    else card.style.background = 'linear-gradient(135deg,#2d6a4f,#52b788)';
+    document.getElementById('observationsList').innerHTML = (ev.observations || []).map(o => `<li style="font-size:0.88rem;line-height:1.8;color:var(--text)">${escapeHTML(o)}</li>`).join('');
+    document.getElementById('recommendationsList').innerHTML = (ev.recommendations || []).map(r => `<li style="font-size:0.88rem;line-height:1.8;color:var(--text)">${escapeHTML(r)}</li>`).join('');
+    if (ev.urgent) document.getElementById('urgentBanner').style.display = 'block';
+    document.getElementById('quizStep2').style.display = 'none';
+    document.getElementById('quizStep3').style.display = 'block';
+    loadAssessmentHistory();
+  }
+
+  async function loadAssessmentHistory() {
+    const res = await fetch('/api/patient/assessments', { headers: { 'Authorization': 'Bearer ' + token } });
+    const data = await res.json();
+    const el = document.getElementById('assessmentHistory');
+    if (!el) return;
+    if (!data.assessments?.length) { el.innerHTML = '<p style="color:var(--muted);font-size:0.85rem">No previous assessments.</p>'; return; }
+    el.innerHTML = data.assessments.map(a => `
+      <div class="log-item">
+        <div>
+          <div class="log-text"><strong>${a.score}%</strong> \u2014 ${escapeHTML(a.surgery_type || 'General')}</div>
+          <div class="log-meta">${new Date(a.created_at).toLocaleString()}</div>
+        </div>
+        <span class="badge ${a.risk_level === 'low' ? 'mild' : a.risk_level === 'medium' ? 'moderate' : 'severe'}">${a.risk_level}</span>
+      </div>`).join('');
+  }
+
+  function resetQuiz() {
+    quizData = { questions: [], answers: {}, surgeryType: '', diagnosis: '' };
+    document.getElementById('quizStep2').style.display = 'none';
+    document.getElementById('quizStep3').style.display = 'none';
+    document.getElementById('urgentBanner').style.display = 'none';
+    document.getElementById('quizGenMsg').textContent = '';
+    document.getElementById('quizGenerateBtn').disabled = false;
+    document.getElementById('quizStep1').style.display = 'block';
+    loadAssessmentHistory();
+  }
+
+  // ---- RECOVERY PLAN ----
+  async function generatePlan() {
+    const diagnosis = document.getElementById('planDiagnosis').value.trim();
+    const surgeryType = document.getElementById('planSurgery').value.trim();
+    const medications = document.getElementById('planMeds').value.trim();
+    const concerns = document.getElementById('planConcerns').value.trim();
+    const msg = document.getElementById('planMsg');
+    const btn = document.getElementById('planBtn');
+    msg.textContent = '⏳ Generating your personalized plan...';
+    btn.disabled = true;
+    try {
+      const res = await fetch('/api/patient/discharge-plan', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + token },
+        body: JSON.stringify({ diagnosis, surgeryType, medications, concerns })
+      });
+      const data = await res.json();
+      if (data.plan) {
+        document.getElementById('planText').innerHTML = formatPlan(data.plan);
+        document.getElementById('planOutput').style.display = 'block';
+        msg.textContent = '✅ Plan generated successfully!';
+        msg.style.color = '#2d6a4f';
+      } else {
+        msg.textContent = '❌ Failed to generate plan. Try again.';
+        msg.style.color = '#c0392b';
+      }
+    } catch { msg.textContent = '❌ Connection error.'; msg.style.color = '#c0392b'; }
+    finally { btn.disabled = false; }
+  }
+
+  function formatPlan(text) {
+    const icons = { '1': '💊', '2': '🥗', '3': '🚶', '4': '🩹', '5': '⚠️', '6': '📅' };
+    const lines = text.split('\n').filter(l => l.trim());
+    let html = '';
+    let inSection = false;
+    let inList = false;
+    lines.forEach(line => {
+      line = line.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>').replace(/^#+\s*/, '');
+      const sectionMatch = line.match(/Section (\d)[:.]?\s*(.+)/i) || line.match(/^(\d)\. (.+)/);
+      if (sectionMatch) {
+        if (inList) { html += '</ul>'; inList = false; }
+        if (inSection) html += '</div>';
+        const num = sectionMatch[1];
+        const title = sectionMatch[2].replace(/\*\*/g, '');
+        html += `<div class="plan-section"><div class="plan-section-title">${icons[num] || '🟢'} ${title}</div>`;
+        inSection = true;
+      } else if (line.match(/^[-•]\s+/)) {
+        if (!inList) { html += '<ul>'; inList = true; }
+        html += `<li>${line.replace(/^[-•]\s+/, '')}</li>`;
+      } else {
+        if (inList) { html += '</ul>'; inList = false; }
+        if (line.trim() && inSection) html += `<p>${line}</p>`;
+      }
+    });
+    if (inList) html += '</ul>';
+    if (inSection) html += '</div>';
+    return html || `<p>${escapeHTML(text)}</p>`;
+  }
+  async function loadSavedPlan() {
+    const res = await fetch('/api/patient/discharge-plan', { headers: { 'Authorization': 'Bearer ' + token } });
+    const data = await res.json();
+    if (data.plan) {
+      document.getElementById('planText').innerHTML = formatPlan(data.plan.plan_text);
+        document.getElementById('planOutput').style.display = 'block';
+    }
+  }
+</script>
+</body>
+</html>

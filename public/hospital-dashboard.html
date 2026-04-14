@@ -1,0 +1,522 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Hospital Dashboard — RecoverAI</title>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;700&family=DM+Serif+Display&display=swap" rel="stylesheet" />
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --primary: #1565c0; --primary-light: #42a5f5;
+      --bg: #f0f4ff; --card: #ffffff;
+      --border: #bbdefb; --text: #0d1b2a; --muted: #5c7fa3;
+      --danger: #e53935; --warn: #f57c00; --ok: #2e7d32;
+    }
+    body { font-family: 'DM Sans', sans-serif; background: var(--bg); min-height: 100vh; }
+
+    nav {
+      background: var(--primary); padding: 14px 28px;
+      display: flex; align-items: center; justify-content: space-between; color: white;
+    }
+    .nav-brand { font-family: 'DM Serif Display', serif; font-size: 1.2rem; display: flex; align-items: center; gap: 8px; }
+    .nav-right { display: flex; align-items: center; gap: 16px; font-size: 0.85rem; }
+    .nav-user { opacity: 0.85; }
+    .logout-btn {
+      background: rgba(255,255,255,0.15); border: none; color: white;
+      padding: 6px 14px; border-radius: 20px; cursor: pointer;
+      font-family: 'DM Sans', sans-serif; font-size: 0.82rem; transition: background 0.2s;
+    }
+    .logout-btn:hover { background: rgba(255,255,255,0.25); }
+
+    .tabs-nav {
+      display: flex; background: white; border-bottom: 2px solid var(--border); padding: 0 28px;
+    }
+    .tab-btn {
+      padding: 14px 22px; border: none; background: none;
+      font-family: 'DM Sans', sans-serif; font-size: 0.88rem; font-weight: 600;
+      color: var(--muted); cursor: pointer; border-bottom: 3px solid transparent;
+      margin-bottom: -2px; transition: all 0.2s;
+    }
+    .tab-btn.active { color: var(--primary); border-bottom-color: var(--primary); }
+
+    .panel { display: none; padding: 24px 28px; max-width: 1100px; margin: 0 auto; }
+    .panel.active { display: block; }
+
+    /* Stats row */
+    .stats-row { display: flex; gap: 16px; flex-wrap: wrap; margin-bottom: 24px; }
+    .stat-card {
+      background: var(--card); border-radius: 14px; padding: 20px 24px;
+      flex: 1; min-width: 160px; box-shadow: 0 4px 16px rgba(21,101,192,0.07);
+      border-left: 4px solid var(--primary);
+    }
+    .stat-card.danger { border-left-color: var(--danger); }
+    .stat-card.warn { border-left-color: var(--warn); }
+    .stat-card.ok { border-left-color: var(--ok); }
+    .stat-num { font-size: 2rem; font-weight: 700; color: var(--primary); }
+    .stat-card.danger .stat-num { color: var(--danger); }
+    .stat-card.warn .stat-num { color: var(--warn); }
+    .stat-card.ok .stat-num { color: var(--ok); }
+    .stat-label { font-size: 0.8rem; color: var(--muted); margin-top: 4px; }
+
+    /* Table */
+    .section-title { font-size: 1rem; font-weight: 700; color: var(--primary); margin-bottom: 14px; }
+    .table-wrap { background: var(--card); border-radius: 14px; overflow: hidden; box-shadow: 0 4px 16px rgba(21,101,192,0.07); margin-bottom: 28px; }
+    table { width: 100%; border-collapse: collapse; }
+    th { background: #e3f2fd; color: var(--primary); font-size: 0.78rem; font-weight: 700; padding: 12px 16px; text-align: left; }
+    td { padding: 12px 16px; font-size: 0.85rem; color: var(--text); border-top: 1px solid var(--border); }
+    tr:hover td { background: #f5f9ff; }
+    .badge {
+      font-size: 0.7rem; padding: 3px 10px; border-radius: 20px; font-weight: 600;
+    }
+    .badge.flag { background: #fde8e8; color: var(--danger); }
+    .badge.mild { background: #e8f5e9; color: var(--ok); }
+    .badge.moderate { background: #fff3e0; color: var(--warn); }
+    .badge.severe { background: #fde8e8; color: var(--danger); }
+    .view-btn {
+      padding: 5px 14px; background: var(--primary); color: white;
+      border: none; border-radius: 8px; cursor: pointer; font-size: 0.78rem;
+      font-family: 'DM Sans', sans-serif; transition: background 0.2s;
+    }
+    .view-btn:hover { background: #0d47a1; }
+    .edit-btn {
+      padding: 5px 14px; background: var(--warn); color: white;
+      border: none; border-radius: 8px; cursor: pointer; font-size: 0.78rem;
+      font-family: 'DM Sans', sans-serif; transition: background 0.2s;
+    }
+    .edit-btn:hover { background: #e65100; }
+    .del-btn {
+      padding: 5px 14px; background: var(--danger); color: white;
+      border: none; border-radius: 8px; cursor: pointer; font-size: 0.78rem;
+      font-family: 'DM Sans', sans-serif; transition: background 0.2s;
+    }
+    .del-btn:hover { background: #b71c1c; }
+    .form-input {
+      width: 100%; padding: 8px 12px; border: 1.5px solid var(--border);
+      border-radius: 8px; font-family: 'DM Sans', sans-serif; font-size: 0.85rem;
+      outline: none; margin-bottom: 12px; color: var(--text);
+    }
+    .form-input:focus { border-color: var(--primary-light); }
+    .form-label { font-size: 0.78rem; font-weight: 700; color: var(--primary); margin-bottom: 4px; display: block; }
+    .filter-btn {
+      padding: 6px 14px; border: 1.5px solid var(--border); background: white;
+      border-radius: 20px; cursor: pointer; font-size: 0.78rem; font-weight: 600;
+      font-family: 'DM Sans', sans-serif; color: var(--muted); transition: all 0.2s;
+    }
+    .filter-btn:hover { border-color: var(--primary); color: var(--primary); }
+    .filter-btn.active { background: var(--primary); color: white; border-color: var(--primary); }
+    .status-badge {
+      font-size: 0.72rem; padding: 3px 10px; border-radius: 20px; font-weight: 600;
+    }
+    .status-active { background: #e3f2fd; color: var(--primary); }
+    .status-recovered { background: #e8f5e9; color: var(--ok); }
+    .status-readmitted { background: #fde8e8; color: var(--danger); }
+    .status-critical { background: #fde8e8; color: var(--danger); }
+
+    /* Chart */
+    .chart-card {
+      background: var(--card); border-radius: 14px; padding: 24px;
+      box-shadow: 0 4px 16px rgba(21,101,192,0.07); margin-bottom: 28px;
+    }
+
+    /* Modal */
+    .modal-overlay {
+      position: fixed; inset: 0; background: rgba(0,0,0,0.45);
+      display: flex; align-items: center; justify-content: center;
+      z-index: 1000; padding: 20px;
+    }
+    .modal-overlay.hidden { display: none; }
+    .modal {
+      background: white; border-radius: 18px; padding: 32px;
+      width: 100%; max-width: 600px; max-height: 80vh; overflow-y: auto;
+      box-shadow: 0 16px 48px rgba(0,0,0,0.2);
+    }
+    .modal-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
+    .modal-title { font-family: 'DM Serif Display', serif; font-size: 1.3rem; color: var(--primary); }
+    .close-btn { background: none; border: none; font-size: 1.4rem; cursor: pointer; color: var(--muted); }
+    .modal-section { margin-bottom: 20px; }
+    .modal-section h3 { font-size: 0.88rem; font-weight: 700; color: var(--primary); margin-bottom: 10px; }
+    .log-item {
+      background: #f5f9ff; border: 1px solid var(--border); border-radius: 10px;
+      padding: 10px 14px; margin-bottom: 8px;
+    }
+    .log-item.flagged { background: #fff5f5; border-color: #e53935; }
+    .log-text { font-size: 0.85rem; color: var(--text); }
+    .log-meta { font-size: 0.7rem; color: var(--muted); margin-top: 3px; }
+    .empty { font-size: 0.82rem; color: var(--muted); }
+  </style>
+</head>
+<body>
+
+<nav>
+  <div class="nav-brand">🏥 RecoverAI — Staff</div>
+  <div class="nav-right">
+    <span class="nav-user" id="navUser"></span>
+    <button class="logout-btn" onclick="logout()">Logout</button>
+  </div>
+</nav>
+
+<div class="tabs-nav">
+  <button class="tab-btn active" onclick="showPanel('overview', this)">📊 Overview</button>
+  <button class="tab-btn" onclick="showPanel('patients', this)">👥 Patients</button>
+  <button class="tab-btn" onclick="showPanel('alerts', this)">🚨 Red-Flag Alerts</button>
+  <button class="tab-btn" onclick="showPanel('assessments', this)">📋 Recovery Scores</button>
+</div>
+
+<!-- OVERVIEW PANEL -->
+<div class="panel active" id="panel-overview">
+  <div class="stats-row">
+    <div class="stat-card ok">
+      <div class="stat-num" id="statPatients">—</div>
+      <div class="stat-label">Total Patients</div>
+    </div>
+    <div class="stat-card danger">
+      <div class="stat-num" id="statAlerts">—</div>
+      <div class="stat-label">Red-Flag Alerts</div>
+    </div>
+    <div class="stat-card warn">
+      <div class="stat-num" id="statToday">—</div>
+      <div class="stat-label">Symptoms Logged Today</div>
+    </div>
+  </div>
+
+  <div class="chart-card">
+    <div class="section-title">Symptom Trend — Last 14 Days</div>
+    <canvas id="trendChart" height="100"></canvas>
+  </div>
+
+  <div class="section-title">Recent Red-Flag Alerts</div>
+  <div class="table-wrap">
+    <table>
+      <thead><tr><th>Patient</th><th>Symptoms</th><th>Severity</th><th>Time</th></tr></thead>
+      <tbody id="overviewAlerts"><tr><td colspan="4" style="color:var(--muted)">Loading…</td></tr></tbody>
+    </table>
+  </div>
+</div>
+
+<!-- PATIENTS PANEL -->
+<div class="panel" id="panel-patients">
+  <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;flex-wrap:wrap;gap:10px">
+    <div class="section-title" style="margin:0">All Registered Patients</div>
+    <div style="display:flex;gap:6px;flex-wrap:wrap">
+      <button class="filter-btn active" onclick="filterPatients('all',this)">All</button>
+      <button class="filter-btn" onclick="filterPatients('active',this)">🟢 Active</button>
+      <button class="filter-btn" onclick="filterPatients('recovered',this)">✅ Recovered</button>
+      <button class="filter-btn" onclick="filterPatients('readmitted',this)">🔴 Readmitted</button>
+      <button class="filter-btn" onclick="filterPatients('critical',this)">🚨 Critical</button>
+    </div>
+  </div>
+  <div class="table-wrap">
+    <table>
+      <thead><tr><th>Name</th><th>Email</th><th>Diagnosis</th><th>Status</th><th>Registered</th><th>Actions</th></tr></thead>
+      <tbody id="patientTable"><tr><td colspan="6" style="color:var(--muted)">Loading…</td></tr></tbody>
+    </table>
+  </div>
+</div>
+
+<!-- ALERTS PANEL -->
+<div class="panel" id="panel-alerts">
+  <div class="section-title">🚨 All Red-Flag Alerts</div>
+  <div class="table-wrap">
+    <table>
+      <thead><tr><th>Patient</th><th>Symptoms</th><th>Severity</th><th>Date & Time</th></tr></thead>
+      <tbody id="alertTable"><tr><td colspan="4" style="color:var(--muted)">Loading…</td></tr></tbody>
+    </table>
+  </div>
+</div>
+
+<!-- ASSESSMENTS PANEL -->
+<div class="panel" id="panel-assessments">
+  <div class="section-title">📋 Patient Recovery Scores</div>
+  <div class="table-wrap">
+    <table>
+      <thead><tr><th>Patient</th><th>Score</th><th>Risk Level</th><th>Date</th></tr></thead>
+      <tbody id="assessmentTable"><tr><td colspan="4" style="color:var(--muted)">Loading…</td></tr></tbody>
+    </table>
+  </div>
+</div>
+
+<!-- EDIT PATIENT MODAL -->
+<div class="modal-overlay hidden" id="editModalOverlay">
+  <div class="modal">
+    <div class="modal-header">
+      <div class="modal-title">✏️ Edit Patient</div>
+      <button class="close-btn" onclick="closeEditModal()">✕</button>
+    </div>
+    <input type="hidden" id="editPatientId" />
+    <label class="form-label">Full Name</label>
+    <input class="form-input" id="editName" placeholder="Full name" />
+    <label class="form-label">Email</label>
+    <input class="form-input" id="editEmail" placeholder="Email address" />
+    <label class="form-label">Primary Diagnosis</label>
+    <input class="form-input" id="editDiagnosis" placeholder="e.g. Appendicitis" />
+    <label class="form-label">Surgery Type</label>
+    <input class="form-input" id="editSurgery" placeholder="e.g. Appendectomy" />
+    <label class="form-label">Discharge Date</label>
+    <input class="form-input" type="date" id="editDischarge" />
+    <label class="form-label">Recovery Status</label>
+    <select class="form-input" id="editStatus">
+      <option value="active">Active</option>
+      <option value="recovered">Recovered</option>
+      <option value="critical">Critical</option>
+      <option value="readmitted">Readmitted</option>
+    </select>
+    <div id="editMsg" style="font-size:0.82rem;margin-bottom:12px"></div>
+    <div style="display:flex;gap:10px;justify-content:flex-end">
+      <button onclick="closeEditModal()" style="padding:9px 20px;background:none;border:1.5px solid var(--border);border-radius:8px;cursor:pointer;font-family:inherit;color:var(--muted)">Cancel</button>
+      <button onclick="saveEdit()" style="padding:9px 20px;background:var(--primary);color:white;border:none;border-radius:8px;cursor:pointer;font-family:inherit;font-weight:600">Save Changes</button>
+    </div>
+  </div>
+</div>
+
+<!-- PATIENT DETAIL MODAL -->
+<div class="modal-overlay hidden" id="modalOverlay">
+  <div class="modal">
+    <div class="modal-header">
+      <div class="modal-title" id="modalTitle">Patient Detail</div>
+      <button class="close-btn" onclick="closeModal()">✕</button>
+    </div>
+    <div id="modalBody"></div>
+  </div>
+</div>
+
+<script>
+  const token = localStorage.getItem('token');
+  const user = JSON.parse(localStorage.getItem('user') || '{}');
+  if (!token || (user.role !== 'hospital' && user.role !== 'hospital_staff')) window.location.href = 'auth-hospital.html';
+  document.getElementById('navUser').textContent = '👤 ' + (user.name || user.email);
+
+  function logout() { localStorage.clear(); window.location.href = 'index.html'; }
+
+  function escapeHTML(s) {
+    if (!s) return '—';
+    return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+  }
+
+  function showPanel(name, btn) {
+    document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
+    document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+    document.getElementById('panel-' + name).classList.add('active');
+    btn.classList.add('active');
+    if (name === 'patients') loadPatients();
+    if (name === 'alerts') loadAlerts();
+    if (name === 'assessments') loadAssessments();
+  }
+
+  async function apiFetch(url) {
+    const res = await fetch(url, { headers: { 'Authorization': 'Bearer ' + token } });
+    return res.json();
+  }
+
+  // ---- OVERVIEW ----
+  async function loadOverview() {
+    const [pData, aData, sData] = await Promise.all([
+      apiFetch('/api/hospital/patients'),
+      apiFetch('/api/hospital/alerts'),
+      apiFetch('/api/hospital/stats'),
+    ]);
+
+    document.getElementById('statPatients').textContent = pData.patients?.length ?? 0;
+    document.getElementById('statAlerts').textContent = aData.alerts?.length ?? 0;
+
+    const today = new Date().toISOString().slice(0, 10);
+    const todayStat = sData.stats?.find(s => s.date === today);
+    document.getElementById('statToday').textContent = todayStat?.total ?? 0;
+
+    // Chart
+    const labels = sData.stats?.map(s => s.date.slice(5)) || [];
+    const totals = sData.stats?.map(s => parseInt(s.total)) || [];
+    const flagged = sData.stats?.map(s => parseInt(s.flagged)) || [];
+    const ctx = document.getElementById('trendChart').getContext('2d');
+    new Chart(ctx, {
+      type: 'bar',
+      data: {
+        labels,
+        datasets: [
+          { label: 'Total Symptoms', data: totals, backgroundColor: '#bbdefb', borderRadius: 6 },
+          { label: 'Red Flags', data: flagged, backgroundColor: '#ef9a9a', borderRadius: 6 },
+        ]
+      },
+      options: {
+        responsive: true,
+        plugins: { legend: { position: 'top' } },
+        scales: { y: { beginAtZero: true, ticks: { stepSize: 1 } } }
+      }
+    });
+
+    // Recent alerts table
+    const tbody = document.getElementById('overviewAlerts');
+    const recent = aData.alerts?.slice(0, 8) || [];
+    if (!recent.length) { tbody.innerHTML = '<tr><td colspan="4" style="color:var(--muted)">No alerts yet.</td></tr>'; return; }
+    tbody.innerHTML = recent.map(a => `
+      <tr>
+        <td>${escapeHTML(a.patient_name)}</td>
+        <td>${escapeHTML(a.symptoms)}</td>
+        <td><span class="badge ${a.severity}">${a.severity}</span></td>
+        <td>${new Date(a.created_at).toLocaleString()}</td>
+      </tr>`).join('');
+  }
+
+  // ---- PATIENTS ----
+  let currentFilter = 'all';
+
+  function filterPatients(status, btn) {
+    currentFilter = status;
+    document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    loadPatients();
+  }
+
+  async function loadPatients() {
+    const url = '/api/hospital/patients' + (currentFilter !== 'all' ? '?status=' + currentFilter : '');
+    const data = await apiFetch(url);
+    const tbody = document.getElementById('patientTable');
+    if (!data.patients?.length) {
+      tbody.innerHTML = '<tr><td colspan="6" style="color:var(--muted);text-align:center;padding:24px">No patients found.</td></tr>';
+      return;
+    }
+    const statusClass = { active: 'status-active', recovered: 'status-recovered', readmitted: 'status-readmitted', critical: 'status-critical' };
+    tbody.innerHTML = data.patients.map(p => `
+      <tr>
+        <td><strong>${escapeHTML(p.name)}</strong></td>
+        <td>${escapeHTML(p.email)}</td>
+        <td style="font-size:0.82rem">${escapeHTML(p.primary_diagnosis || '—')}</td>
+        <td><span class="status-badge ${statusClass[p.recovery_status] || 'status-active'}">${p.recovery_status || 'active'}</span></td>
+        <td>${new Date(p.created_at).toLocaleDateString()}</td>
+        <td style="display:flex;gap:6px;flex-wrap:wrap">
+          <button class="view-btn" onclick="viewPatient('${p.id}','${escapeHTML(p.name)}')">View</button>
+          <button class="edit-btn" onclick="openEditModal('${p.id}','${escapeHTML(p.name)}','${escapeHTML(p.email)}','${escapeHTML(p.primary_diagnosis||'')}','${escapeHTML(p.surgery_type||'')}','${p.discharge_date||''}','${p.recovery_status||'active'}')">Edit</button>
+          <button class="del-btn" onclick="deletePatient('${p.id}','${escapeHTML(p.name)}')">Delete</button>
+        </td>
+      </tr>`).join('');
+  }
+
+  function openEditModal(id, name, email, diagnosis, surgery, discharge, status) {
+    document.getElementById('editPatientId').value = id;
+    document.getElementById('editName').value = name === '\u2014' ? '' : name;
+    document.getElementById('editEmail').value = email === '\u2014' ? '' : email;
+    document.getElementById('editDiagnosis').value = diagnosis === '\u2014' ? '' : diagnosis;
+    document.getElementById('editSurgery').value = surgery === '\u2014' ? '' : surgery;
+    document.getElementById('editDischarge').value = discharge || '';
+    document.getElementById('editStatus').value = status || 'active';
+    document.getElementById('editMsg').textContent = '';
+    document.getElementById('editModalOverlay').classList.remove('hidden');
+  }
+
+  function closeEditModal() { document.getElementById('editModalOverlay').classList.add('hidden'); }
+
+  async function saveEdit() {
+    const id = document.getElementById('editPatientId').value;
+    const msg = document.getElementById('editMsg');
+    const body = {
+      name: document.getElementById('editName').value.trim(),
+      email: document.getElementById('editEmail').value.trim(),
+      diagnosis: document.getElementById('editDiagnosis').value.trim(),
+      surgeryType: document.getElementById('editSurgery').value.trim(),
+      dischargeDate: document.getElementById('editDischarge').value,
+      recoveryStatus: document.getElementById('editStatus').value,
+    };
+    try {
+      const res = await fetch('/api/hospital/patient/' + id, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + token },
+        body: JSON.stringify(body)
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error);
+      msg.textContent = '\u2705 Patient updated successfully.';
+      msg.style.color = 'var(--ok)';
+      setTimeout(() => { closeEditModal(); loadPatients(); }, 1000);
+    } catch (e) {
+      msg.textContent = '\u274c ' + e.message;
+      msg.style.color = 'var(--danger)';
+    }
+  }
+
+  async function deletePatient(id, name) {
+    if (!confirm('Delete patient "' + name + '"?\n\nThis will permanently remove all their data including symptoms, medications, and chat history.')) return;
+    try {
+      const res = await fetch('/api/hospital/patient/' + id, {
+        method: 'DELETE',
+        headers: { 'Authorization': 'Bearer ' + token }
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error);
+      loadPatients();
+      loadOverview();
+    } catch (e) { alert('Error: ' + e.message); }
+  }
+
+  document.getElementById('editModalOverlay').addEventListener('click', e => { if (e.target === e.currentTarget) closeEditModal(); });
+
+  // ---- ALERTS ----
+  async function loadAlerts() {
+    const data = await apiFetch('/api/hospital/alerts');
+    const tbody = document.getElementById('alertTable');
+    if (!data.alerts?.length) { tbody.innerHTML = '<tr><td colspan="4" style="color:var(--muted)">No red-flag alerts.</td></tr>'; return; }
+    tbody.innerHTML = data.alerts.map(a => `
+      <tr>
+        <td>${escapeHTML(a.patient_name)}</td>
+        <td>${escapeHTML(a.symptoms)}</td>
+        <td><span class="badge ${a.severity}">${a.severity}</span> <span class="badge flag">🚨</span></td>
+        <td>${new Date(a.created_at).toLocaleString()}</td>
+      </tr>`).join('');
+  }
+
+  // ---- PATIENT DETAIL MODAL ----
+  async function viewPatient(id, name) {
+    document.getElementById('modalTitle').textContent = '🧑 ' + name;
+    document.getElementById('modalBody').innerHTML = '<p style="color:var(--muted)">Loading…</p>';
+    document.getElementById('modalOverlay').classList.remove('hidden');
+    const data = await apiFetch('/api/hospital/patient/' + id);
+    const syms = data.symptoms || [];
+    const meds = data.medications || [];
+    document.getElementById('modalBody').innerHTML = `
+      <div class="modal-section">
+        <h3>📧 ${escapeHTML(data.patient?.email)} &nbsp;|&nbsp; Joined: ${new Date(data.patient?.created_at).toLocaleDateString()}</h3>
+        ${data.patient?.primary_diagnosis ? `<p style="font-size:0.82rem;margin-top:6px;color:var(--text)">🩺 Diagnosis: <strong>${escapeHTML(data.patient.primary_diagnosis)}</strong></p>` : ''}
+        ${data.patient?.surgery_type ? `<p style="font-size:0.82rem;margin-top:4px;color:var(--text)">🔪 Surgery: <strong>${escapeHTML(data.patient.surgery_type)}</strong></p>` : ''}
+        ${data.patient?.discharge_date ? `<p style="font-size:0.82rem;margin-top:4px;color:var(--text)">📅 Discharged: <strong>${new Date(data.patient.discharge_date).toLocaleDateString()}</strong></p>` : ''}
+        ${data.patient?.recovery_status ? `<p style="font-size:0.82rem;margin-top:4px;color:var(--text)">💚 Status: <strong>${escapeHTML(data.patient.recovery_status)}</strong></p>` : ''}
+      </div>
+      <div class="modal-section">
+        <h3>🩺 Recent Symptoms (${syms.length})</h3>
+        ${syms.length ? syms.map(s => `
+          <div class="log-item ${s.flagged ? 'flagged' : ''}">
+            <div class="log-text">${escapeHTML(s.symptoms)} ${s.flagged ? '🚨' : ''}</div>
+            <div class="log-meta">${s.severity} &nbsp;|&nbsp; ${new Date(s.created_at).toLocaleString()}</div>
+          </div>`).join('') : '<p class="empty">No symptoms logged.</p>'}
+      </div>
+      <div class="modal-section">
+        <h3>💊 Medications (${meds.length})</h3>
+        ${meds.length ? meds.map(m => `
+          <div class="log-item">
+            <div class="log-text"><strong>${escapeHTML(m.medication_name)}</strong> — ${escapeHTML(m.dosage)}</div>
+            <div class="log-meta">Frequency: ${escapeHTML(m.frequency)}</div>
+          </div>`).join('') : '<p class="empty">No medications added.</p>'}
+      </div>`;
+  }
+
+  function closeModal() { document.getElementById('modalOverlay').classList.add('hidden'); }
+  document.getElementById('modalOverlay').addEventListener('click', (e) => { if (e.target === e.currentTarget) closeModal(); });
+
+  // ---- ASSESSMENTS ----
+  async function loadAssessments() {
+    const data = await apiFetch('/api/hospital/assessments');
+    const tbody = document.getElementById('assessmentTable');
+    if (!data.assessments?.length) { tbody.innerHTML = '<tr><td colspan="4" style="color:var(--muted)">No assessments yet.</td></tr>'; return; }
+    tbody.innerHTML = data.assessments.map(a => `
+      <tr>
+        <td>${escapeHTML(a.patient_name)}<br><span style="font-size:0.75rem;color:var(--muted)">${escapeHTML(a.email)}</span></td>
+        <td><strong>${a.score}%</strong></td>
+        <td><span class="badge ${a.risk_level === 'low' ? 'mild' : a.risk_level === 'medium' ? 'moderate' : 'severe'}">${a.risk_level}</span></td>
+        <td>${new Date(a.created_at).toLocaleString()}</td>
+      </tr>`).join('');
+  }
+
+  // Init
+  loadOverview();
+</script>
+</body>
+</html>

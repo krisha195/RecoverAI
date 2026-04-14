@@ -1,0 +1,160 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Hospital Staff Portal — RecoverAI</title>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;700&family=DM+Serif+Display&display=swap" rel="stylesheet" />
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: 'DM Sans', sans-serif;
+      background: linear-gradient(135deg, #e3f2fd, #e8eaf6);
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 24px;
+    }
+    .card {
+      background: white;
+      border-radius: 20px;
+      padding: 40px 36px;
+      width: 100%;
+      max-width: 420px;
+      box-shadow: 0 8px 32px rgba(13,71,161,0.12);
+    }
+    .back { font-size: 0.8rem; color: #1565c0; text-decoration: none; display: inline-flex; align-items: center; gap: 4px; margin-bottom: 20px; }
+    .back:hover { color: #0d47a1; }
+    .logo { text-align: center; font-size: 2.2rem; margin-bottom: 6px; }
+    h1 { font-family: 'DM Serif Display', serif; font-size: 1.6rem; color: #0d47a1; text-align: center; }
+    .subtitle { text-align: center; color: #5c7fa3; font-size: 0.85rem; margin-bottom: 28px; margin-top: 4px; }
+    .tabs { display: flex; border-radius: 10px; overflow: hidden; border: 1.5px solid #bbdefb; margin-bottom: 28px; }
+    .tab {
+      flex: 1; padding: 10px; text-align: center; cursor: pointer;
+      font-size: 0.88rem; font-weight: 600; color: #1565c0;
+      background: #e3f2fd; transition: all 0.2s;
+    }
+    .tab.active { background: #1565c0; color: white; }
+    .form-group { margin-bottom: 18px; }
+    label { display: block; font-size: 0.82rem; font-weight: 600; color: #0d47a1; margin-bottom: 6px; }
+    input {
+      width: 100%; padding: 11px 14px;
+      border: 1.5px solid #bbdefb; border-radius: 10px;
+      font-family: 'DM Sans', sans-serif; font-size: 0.9rem;
+      outline: none; transition: border-color 0.2s; color: #1a237e;
+    }
+    input:focus { border-color: #1565c0; }
+    .btn {
+      width: 100%; padding: 13px;
+      background: #1565c0; color: white;
+      border: none; border-radius: 12px;
+      font-family: 'DM Sans', sans-serif; font-size: 0.95rem; font-weight: 700;
+      cursor: pointer; transition: background 0.2s; margin-top: 4px;
+    }
+    .btn:hover { background: #0d47a1; }
+    .btn:disabled { background: #aaa; cursor: not-allowed; }
+    .error { color: #c0392b; font-size: 0.82rem; margin-top: 10px; text-align: center; min-height: 18px; }
+    .hidden { display: none; }
+  </style>
+</head>
+<body>
+  <div class="card">
+    <a class="back" href="index.html">← Back to Home</a>
+    <div class="logo">🏨</div>
+    <h1>Hospital Staff Portal</h1>
+    <p class="subtitle">Monitor and manage patient recovery</p>
+
+    <div class="tabs">
+      <div class="tab active" onclick="switchTab('login')">Login</div>
+      <div class="tab" onclick="switchTab('signup')">Sign Up</div>
+    </div>
+
+    <div id="loginForm">
+      <div class="form-group">
+        <label>Staff Email</label>
+        <input type="email" id="loginEmail" placeholder="staff@hospital.com" />
+      </div>
+      <div class="form-group">
+        <label>Password</label>
+        <input type="password" id="loginPassword" placeholder="••••••••" />
+      </div>
+      <button class="btn" id="loginBtn" onclick="login()">Login</button>
+      <div class="error" id="loginError"></div>
+    </div>
+
+    <div id="signupForm" class="hidden">
+      <div class="form-group">
+        <label>Full Name</label>
+        <input type="text" id="signupName" placeholder="Dr. / Nurse name" />
+      </div>
+      <div class="form-group">
+        <label>Staff Email</label>
+        <input type="email" id="signupEmail" placeholder="staff@hospital.com" />
+      </div>
+      <div class="form-group">
+        <label>Password</label>
+        <input type="password" id="signupPassword" placeholder="Min. 6 characters" />
+      </div>
+      <button class="btn" id="signupBtn" onclick="signup()">Create Account</button>
+      <div class="error" id="signupError"></div>
+    </div>
+  </div>
+
+  <script>
+    function switchTab(tab) {
+      document.querySelectorAll('.tab').forEach((t, i) => t.classList.toggle('active', (i === 0) === (tab === 'login')));
+      document.getElementById('loginForm').classList.toggle('hidden', tab !== 'login');
+      document.getElementById('signupForm').classList.toggle('hidden', tab !== 'signup');
+    }
+
+    async function login() {
+      const email = document.getElementById('loginEmail').value.trim();
+      const password = document.getElementById('loginPassword').value;
+      const errEl = document.getElementById('loginError');
+      const btn = document.getElementById('loginBtn');
+      errEl.textContent = '';
+      if (!email || !password) { errEl.textContent = 'Please fill all fields.'; return; }
+      btn.disabled = true; btn.textContent = 'Logging in…';
+      try {
+        const res = await fetch('/api/auth/login', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ email, password, role: 'hospital' })
+        });
+        const data = await res.json();
+        if (!res.ok) { errEl.textContent = data.error || 'Login failed.'; return; }
+        localStorage.setItem('token', data.token);
+        localStorage.setItem('user', JSON.stringify(data.user));
+        window.location.href = 'hospital-dashboard.html';
+      } catch { errEl.textContent = 'Connection error.'; }
+      finally { btn.disabled = false; btn.textContent = 'Login'; }
+    }
+
+    async function signup() {
+      const name = document.getElementById('signupName').value.trim();
+      const email = document.getElementById('signupEmail').value.trim();
+      const password = document.getElementById('signupPassword').value;
+      const errEl = document.getElementById('signupError');
+      const btn = document.getElementById('signupBtn');
+      errEl.textContent = '';
+      if (!name || !email || !password) { errEl.textContent = 'Please fill all fields.'; return; }
+      if (password.length < 6) { errEl.textContent = 'Password must be at least 6 characters.'; return; }
+      btn.disabled = true; btn.textContent = 'Creating account…';
+      try {
+        const res = await fetch('/api/auth/register', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ name, email, password, role: 'hospital' })
+        });
+        const data = await res.json();
+        if (!res.ok) { errEl.textContent = data.error || 'Registration failed.'; return; }
+        localStorage.setItem('token', data.token);
+        localStorage.setItem('user', JSON.stringify(data.user));
+        window.location.href = 'hospital-dashboard.html';
+      } catch { errEl.textContent = 'Connection error.'; }
+      finally { btn.disabled = false; btn.textContent = 'Create Account'; }
+    }
+  </script>
+</body>
+</html>

@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>RecoverAI — Post-Discharge Companion</title>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;700&family=DM+Serif+Display&display=swap" rel="stylesheet" />
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: 'DM Sans', sans-serif;
+      background: linear-gradient(135deg, #e8f5e9 0%, #f1f8e9 50%, #e0f2f1 100%);
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 24px;
+    }
+    .logo { font-size: 3rem; margin-bottom: 12px; }
+    h1 {
+      font-family: 'DM Serif Display', serif;
+      font-size: 2.4rem;
+      color: #1b4332;
+      text-align: center;
+    }
+    .tagline {
+      color: #52796f;
+      font-size: 1rem;
+      margin: 10px 0 48px;
+      text-align: center;
+      max-width: 480px;
+      line-height: 1.6;
+    }
+    .cards {
+      display: flex;
+      gap: 28px;
+      flex-wrap: wrap;
+      justify-content: center;
+    }
+    .card {
+      background: white;
+      border-radius: 20px;
+      padding: 40px 36px;
+      width: 280px;
+      text-align: center;
+      box-shadow: 0 8px 32px rgba(27,67,50,0.10);
+      transition: transform 0.2s, box-shadow 0.2s;
+      text-decoration: none;
+      color: inherit;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 14px;
+    }
+    .card:hover { transform: translateY(-6px); box-shadow: 0 16px 40px rgba(27,67,50,0.16); }
+    .card-icon { font-size: 3rem; }
+    .card h2 { font-size: 1.2rem; color: #1b4332; font-weight: 700; }
+    .card p { font-size: 0.85rem; color: #6b8f71; line-height: 1.5; }
+    .card-btn {
+      margin-top: 8px;
+      padding: 10px 28px;
+      border-radius: 30px;
+      border: none;
+      font-family: 'DM Sans', sans-serif;
+      font-size: 0.88rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: background 0.2s;
+    }
+    .patient-btn { background: #2d6a4f; color: white; }
+    .patient-btn:hover { background: #1b4332; }
+    .hospital-btn { background: #1565c0; color: white; }
+    .hospital-btn:hover { background: #0d47a1; }
+    .footer { margin-top: 48px; font-size: 0.72rem; color: #95b8a0; text-align: center; }
+  </style>
+</head>
+<body>
+  <div class="logo">🏥</div>
+  <h1>RecoverAI</h1>
+  <p class="tagline">Your AI-powered post-discharge recovery companion. Personalized monitoring, early alerts, and peace of mind — for patients and healthcare teams.</p>
+
+  <div class="cards">
+    <a class="card" href="auth-patient.html">
+      <div class="card-icon">🧑‍⚕️</div>
+      <h2>Patient Portal</h2>
+      <p>Track your recovery, log symptoms, manage medications, and chat with your AI companion.</p>
+      <button class="card-btn patient-btn">Patient Login / Sign Up</button>
+    </a>
+    <a class="card" href="auth-hospital.html">
+      <div class="card-icon">🏨</div>
+      <h2>Hospital Staff Portal</h2>
+      <p>Monitor all patients, view red-flag alerts, track symptom trends, and manage care efficiently.</p>
+      <button class="card-btn hospital-btn">Staff Login / Sign Up</button>
+    </a>
+  </div>
+
+  <div class="footer">⚠️ Not a substitute for professional medical advice. For emergencies, call 112.</div>
+</body>
+</html>
